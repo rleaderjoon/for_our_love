@@ -1,4 +1,4 @@
-# for_our_love — All-in-One 설치 스크립트
+﻿# for_our_love — All-in-One 설치 스크립트
 # 사용법: .\install.ps1
 # 재실행 안전: 이미 설치된 항목은 스킵
 # 출처: rleaderjoon/for_our_love

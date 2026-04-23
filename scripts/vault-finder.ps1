@@ -1,4 +1,4 @@
-# vault-finder.ps1 — Obsidian vault 위치 자동 탐색 및 저장
+﻿# vault-finder.ps1 — Obsidian vault 위치 자동 탐색 및 저장
 # 출력: 프로젝트 루트의 vault-config.json
 # 출처: rleaderjoon/for_our_love
 

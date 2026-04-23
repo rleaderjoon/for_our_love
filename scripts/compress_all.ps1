@@ -1,4 +1,4 @@
-# compress_all.ps1 — .md 파일을 _AI참고/ 폴더에 압축 저장
+﻿# compress_all.ps1 — .md 파일을 _AI참고/ 폴더에 압축 저장
 # 압축 방법: HTML 주석 제거, 연속 빈줄 압축, 트레일링 공백 제거
 # 재실행 시 신규/변경 파일만 처리 (--Force 로 전체 재압축)
 # 출처: rleaderjoon/for_our_love

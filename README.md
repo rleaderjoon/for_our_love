@@ -9,7 +9,7 @@
 
 ```powershell
 # 1. 클론
-git clone https://github.com/janghyojoon/for_our_love.git
+git clone https://github.com/rleaderjoon/for_our_love.git
 cd for_our_love
 
 # 2. 설치 (한 번만)
@@ -18,7 +18,7 @@ cd for_our_love
 
 Mac/Linux:
 ```bash
-git clone https://github.com/janghyojoon/for_our_love.git
+git clone https://github.com/rleaderjoon/for_our_love.git
 cd for_our_love
 chmod +x install.sh && ./install.sh
 ```
@@ -48,7 +48,7 @@ chmod +x install.sh && ./install.sh
 
 ```powershell
 cd C:\내프로젝트
-& "C:\for_our_love\scripts\aws-detect.ps1" -Path .
+& "C:\클론한경로\for_our_love\scripts\aws-detect.ps1" -Path .
 ```
 
 자동으로:

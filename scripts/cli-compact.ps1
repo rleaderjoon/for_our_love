@@ -1,4 +1,4 @@
-# cli-compact.ps1 — CLI 출력 압축 wrapper 함수
+﻿# cli-compact.ps1 — CLI 출력 압축 wrapper 함수
 # RTK(Rust Token Killer) 없이 PowerShell native로 동일 효과
 # 원리: verbose CLI 출력 → 필터링 → 핵심만 Claude context 진입 (60-80% 절감)
 #

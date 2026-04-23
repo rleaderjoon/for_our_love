@@ -1,4 +1,4 @@
-# aws-check.ps1 — Claude Code PreToolUse hook
+﻿# aws-check.ps1 — Claude Code PreToolUse hook
 # 실행/배포 명령 감지 → "로컬 또는 AWS?" 선택 유도
 # exit 2 = Claude Code가 hook 출력을 읽고 사용자에게 전달
 # 출처: rleaderjoon/for_our_love

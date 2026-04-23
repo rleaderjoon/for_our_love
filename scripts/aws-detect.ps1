@@ -1,4 +1,4 @@
-# aws-detect.ps1 — AWS 서비스 감지 + 로컬 환경 자동 구성
+﻿# aws-detect.ps1 — AWS 서비스 감지 + 로컬 환경 자동 구성
 # 사용법: .\scripts\aws-detect.ps1 -Path C:\myproject
 # 출력: aws-services.json, docker-compose.localstack.yml, .env.local.template
 # 출처: rleaderjoon/for_our_love
