@@ -1,38 +1,77 @@
 #!/bin/bash
 # for_our_love — Mac/Linux 설치 스크립트
+# 사용법: chmod +x install.sh && ./install.sh
 # 출처: rleaderjoon/for_our_love
 
-echo "\n=== for_our_love 설치 시작 ==="
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+STEP=0; TOTAL=4
 
-# ── 1. RTK 설치 ──────────────────────────────────────────
-echo "\n[1/3] RTK (Rust Token Killer) 설치 중..."
-# 출처: https://github.com/rtk-ai/rtk
-if command -v rtk &> /dev/null; then
-    echo "  RTK 이미 설치됨. 스킵."
+step() { STEP=$((STEP+1)); echo "[$STEP/$TOTAL] $1"; }
+ok()   { echo "  OK  $1"; }
+warn() { echo "  !!  $1"; }
+fail() { echo "  XX  $1"; exit 1; }
+
+# ─── 1. Claude Code 확인 ────────────────────────────────────
+step "Claude Code 확인"
+if ! command -v claude &>/dev/null; then
+    fail "Claude Code CLI가 없습니다. https://claude.ai/code 설치 후 재실행."
+fi
+ok "Claude Code 발견"
+
+# ─── 2. Obsidian vault 탐색 ──────────────────────────────────
+step "Obsidian vault 탐색"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    OBSIDIAN_JSON="$HOME/Library/Application Support/obsidian/obsidian.json"
 else
-    # TODO: RTK 공식 설치 명령어 확인 후 업데이트
-    echo "  RTK 설치 필요. ATTRIBUTION.md 의 RTK 링크에서 설치 방법 확인."
+    OBSIDIAN_JSON="$HOME/.config/obsidian/obsidian.json"
 fi
 
-# ── 2. RTK → CLAUDE.md 주입 ──────────────────────────────
-echo "\n[2/3] RTK 글로벌 CLAUDE.md 주입 중..."
-if command -v rtk &> /dev/null; then
-    rtk init --global
-    echo "  완료."
-fi
-
-# ── 3. context-mode MCP 설치 ─────────────────────────────
-echo "\n[3/3] context-mode MCP 설치 중..."
-# TODO: context-mode MCP 공식 설치 명령어 확인 후 업데이트
-if command -v claude &> /dev/null; then
-    echo "  context-mode 설치 명령어: docs/how_it_works.md 참조"
+if [[ -f "$OBSIDIAN_JSON" ]]; then
+    python3 -c "
+import json, os, sys
+with open('$OBSIDIAN_JSON') as f:
+    data = json.load(f)
+vaults = [{'name': os.path.basename(v['path']), 'path': v['path']}
+          for v in data.get('vaults', {}).values()
+          if os.path.exists(v.get('path', ''))]
+out = {'generated': __import__('datetime').datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+       'vault_count': len(vaults), 'vaults': vaults}
+with open('$ROOT/vault-config.json', 'w') as f:
+    json.dump(out, f, indent=2, ensure_ascii=False)
+for v in vaults:
+    print(f'    - {v[\"name\"]}: {v[\"path\"]}')
+print(f'  발견된 vault: {len(vaults)}개')
+"
 else
-    echo "  Claude Code CLI 없음. https://claude.ai/code 설치 후 재실행."
+    warn "Obsidian이 없거나 vault가 없습니다. 스킵."
 fi
 
-# ── 완료 안내 ─────────────────────────────────────────────
-echo "\n=== 설치 완료 ==="
-echo "다음 단계:"
-echo "  1. templates/CLAUDE.md 를 프로젝트 루트에 복사"
-echo "  2. templates/settings.json 을 프로젝트 .claude/settings.json 에 복사"
-echo "  3. 프로젝트 폴더에서 'claude' 실행"
+# ─── 3. CLAUDE.md 설정 ────────────────────────────────────────
+step "CLAUDE.md 설정"
+MARKER="# [for_our_love]"
+GLOBAL_CLAUDE="$HOME/.claude/CLAUDE.md"
+TEMPLATE="$ROOT/templates/CLAUDE.md"
+APPEND="$ROOT/templates/claude-append.md"
+
+if [[ ! -f "$GLOBAL_CLAUDE" ]]; then
+    mkdir -p "$(dirname "$GLOBAL_CLAUDE")"
+    cp "$TEMPLATE" "$GLOBAL_CLAUDE"
+    ok "~/.claude/CLAUDE.md 생성 (템플릿에서)"
+elif ! grep -qF "$MARKER" "$GLOBAL_CLAUDE"; then
+    printf '\n---\n' >> "$GLOBAL_CLAUDE"
+    cat "$APPEND" >> "$GLOBAL_CLAUDE"
+    ok "~/.claude/CLAUDE.md 에 for_our_love 섹션 추가"
+else
+    ok "~/.claude/CLAUDE.md 이미 설정됨. 스킵."
+fi
+
+# ─── 4. compress_all 실행 ─────────────────────────────────────
+step "문서 압축"
+python3 "$ROOT/scripts/compress_all.py" "$ROOT" 2>/dev/null || \
+    warn "Python3 없음. 문서 압축 스킵. (선택 사항)"
+
+echo ""
+echo "=== 설치 완료 ==="
+[[ -f "$ROOT/vault-config.json" ]] && echo "  vault-config.json  — Obsidian vault 등록됨"
+[[ -d "$ROOT/_AI참고" ]]           && echo "  _AI참고/           — 압축 문서 생성됨"
+echo "  CLAUDE.md 행동 지침 적용됨"

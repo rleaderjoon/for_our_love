@@ -1,0 +1,55 @@
+# docker-compose.template.yml — AWS 서비스 로컬 에뮬레이션 전체 템플릿
+# aws-detect.ps1이 감지된 서비스만 포함한 docker-compose.localstack.yml을 자동 생성
+# 이 파일은 참조용 전체 템플릿입니다
+
+version: '3.8'
+
+services:
+  # ── RDS (PostgreSQL) ─────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-app}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      retries: 5
+
+  # ── RDS (MySQL) — PostgreSQL 대신 사용 시 ────────────────────
+  # mysql:
+  #   image: mysql:8
+  #   environment:
+  #     MYSQL_DATABASE: ${DB_NAME:-app}
+  #     MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+  #   ports:
+  #     - "3306:3306"
+
+  # ── ElastiCache (Redis) ───────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+
+  # ── S3 / DynamoDB / SQS / Lambda (LocalStack) ────────────────
+  localstack:
+    image: localstack/localstack:latest
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,dynamodb,sqs,sns,lambda
+      DEBUG: 0
+      AWS_DEFAULT_REGION: ap-northeast-2
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  postgres_data:
+  localstack_data:

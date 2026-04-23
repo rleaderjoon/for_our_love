@@ -18,21 +18,15 @@
 - **원본**: Anthropic Claude Code 내장 `/compress` skill
   - Claude Code CLI에 포함된 기능으로, 파일을 caveman 스타일로 재작성
   - 참고: https://docs.anthropic.com/claude-code
-- **이 프로젝트에서**: skill 정의 규칙을 문서화 + `_AI참고/` 폴더 구조 패턴 제안
+- **이 프로젝트에서**: `compress_all.ps1` 스크립트로 자동화 + `_AI참고/` 폴더 구조 패턴 제안
 
-## 3. RTK (Rust Token Killer)
+## 3. Vault-Finder (Obsidian 직접 읽기)
 
-- **원본**: RTK AI Labs
-  - CLI 도구로 명령어 출력을 필터링해 Claude context 진입 토큰 절감
-  - 참고: https://github.com/rtk-ai/rtk
-- **이 프로젝트에서**: 설치 가이드 + CLAUDE.md 연동 방법 문서화
-
-## 4. context-mode MCP
-
-- **원본**: context-mode MCP 서버
-  - 문서를 벡터 인덱싱해 시맨틱 검색으로 필요한 청크만 context에 로드 (RAG)
-  - Claude Code MCP 생태계 도구
-- **이 프로젝트에서**: 설치 가이드 + 사용 패턴 문서화
+- **원본 아이디어**: context-mode MCP 의 RAG 원리 (필요한 청크만 context에 로드)
+  - Claude Code MCP 생태계 도구에서 영감
+- **이 프로젝트에서**: MCP 서버 없이 직접 파일시스템 접근으로 동일 효과 구현
+  - `scripts/vault-finder.ps1` — Obsidian vault 경로 탐색 및 저장
+  - CLAUDE.md 지침으로 Claude가 vault-config.json → Grep → Read 패턴 사용
 
 ---
 

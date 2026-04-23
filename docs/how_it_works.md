@@ -21,19 +21,19 @@ CLAUDE.md → 대화 시작 시 자동 로드 → 모든 응답에 영향
 
 ---
 
-## 2. /compress — LLM이 파일 직접 재작성
+## 2. compress_all — 문서 압축
 
-**원리**: Claude가 참조 문서를 압축 버전으로 재작성 → 다음 대화에서 읽을 때 토큰 절감
+**원리**: `.md` 파일을 텍스트 처리로 압축 → 다음 대화에서 읽을 때 토큰 절감
 
 ```
-원본 파일 → /compress → 40-60% 압축본 (_AI참고/ 폴더)
-                              ↓
-                    CLAUDE.md 라우팅에서 압축본을 읽도록 설정
+원본 파일 → compress_all.ps1 → 30-60% 압축본 (_AI참고/ 폴더)
+                                        ↓
+                              CLAUDE.md 지침에서 압축본을 우선 읽도록 설정
 ```
 
-- 전처리 없음. Claude 자신이 변환.
 - 원본은 보존, `_AI참고/` 폴더에 압축본 생성.
-- CLAUDE.md 라우팅 테이블을 압축본 경로로 수정.
+- 재실행 시 신규 파일만 처리 (`-Force` 로 전체 재압축).
+- 압축 방법: HTML 주석 제거, 연속 빈줄 압축, 트레일링 공백 제거.
 
 ### _AI참고/ 폴더 구조 패턴
 ```
@@ -48,37 +48,74 @@ CLAUDE.md → 대화 시작 시 자동 로드 → 모든 응답에 영향
 
 ---
 
-## 3. RTK — Shell 출력 필터링
+## 3. CLI compact — 명령어 출력 압축
 
-**원리**: CLI 바이너리가 명령어 출력을 가로채 핵심만 남김
+**원리**: CLI 명령어 출력을 Claude context 진입 전에 필터링
 
 ```
-rtk git log
-  → git log 실행
-  → 출력 파이프 필터
-  → 핵심만 Claude context 진입
+RTK(바이너리)의 원리:
+  rtk git log → git log 실행 → 전체 출력 가로채기 → 핵심만 추출 → Claude context 진입
+
+for_our_love native 구현 (2레이어):
+  레이어 1: CLAUDE.md 지침 → Claude가 처음부터 compact 명령어 선택
+  레이어 2: cli-compact.ps1 → PowerShell 함수로 출력 필터링
 ```
 
-- **두 레이어**:
-  1. CLAUDE.md에 "rtk 써라" 주입 → Claude가 rtk 명령 선택
-  2. rtk 바이너리가 실제 필터링 수행
-- Windows에서는 hook 자동주입 불가 → Claude가 의식적으로 `rtk` 붙여야 함.
-- **절감**: git/npm/test 출력 60-90%.
+RTK는 모든 명령어에 자동 적용되는 바이너리. Windows에서 존재 미확인이라 제거됨.
+native 방식은 지침 기반이므로 Claude가 의식적으로 따라야 효과 있음.
+
+**절감 효과**: git log 50줄 → 20줄 = 60%, npm install 200줄 → 15줄 = 92%
 
 ---
 
-## 4. context-mode MCP — RAG (시맨틱 검색)
+## 4. vault-finder — Obsidian 파일 직접 읽기
 
-**원리**: 문서를 벡터 인덱싱 → 필요한 청크만 검색해서 context 로드
+**원리**: Obsidian vault 위치를 찾아 저장 → Claude가 필요한 노트만 검색해 읽음
 
 ```
-ctx_index: 문서들 → 벡터 DB 생성
-ctx_search: "쿼리" → 관련 청크만 pull → context 진입
+vault-finder.ps1
+  → %APPDATA%\Obsidian\obsidian.json 에서 vault 경로 탐색
+  → vault-config.json 저장 (경로 + 파일 수)
+
+Claude 사용 시:
+  → vault-config.json 읽어 경로 확인
+  → Grep으로 필요한 파일 검색
+  → 관련 파일만 Read (전체 vault 로드 안 함)
 ```
 
-- 전체 파일 읽지 않고 **관련 부분만** 가져옴.
-- 가장 정교한 방식. MCP 서버 백엔드 필요.
-- **절감**: 대형 문서에서 필요한 10%만 읽기.
+- MCP API 불필요 — 직접 파일시스템 접근, Obsidian 미실행 OK.
+- 여러 vault 동시 지원.
+- **절감 효과**: vault 전체 로드 수만 토큰 → 필요한 파일만 수백 토큰.
+
+---
+
+## 5. AWS hook — 로컬/AWS 실행 환경 선택
+
+**원리**: Bash 명령어 실행 전 AWS 패턴 감지 → 자격증명 확인 → 선택 유도
+
+```
+PreToolUse hook (aws-check.ps1)
+  → Claude가 Bash 실행 요청
+  → hook이 먼저 실행: 명령어에서 AWS 패턴 감지
+  → 자격증명 있음: "로컬/AWS 선택" 메시지 → Claude가 사용자에게 확인
+  → 자격증명 없음: "로컬만 가능" 안내
+  → exit 2 → Claude Code가 hook 출력 읽고 사용자에게 전달
+```
+
+```
+프로젝트별 1회 설정 (aws-detect.ps1):
+  코드/.env 스캔 → 사용 중인 서비스 감지
+  → docker-compose.localstack.yml 자동 생성
+  → .env.local.template 복사
+
+실행 환경:
+  로컬: docker-compose -f docker-compose.localstack.yml up -d
+  AWS:  기존 자격증명으로 실제 AWS 접근
+```
+
+- PEM 파일 없는 팀원 → 로컬(Docker) 전용으로 안내.
+- 오너(PEM 있음) → 매 실행마다 선택 질문.
+- **절감 효과**: 잘못된 환경으로 실행해서 발생하는 에러 디버깅 토큰 방지.
 
 ---
 
@@ -87,6 +124,7 @@ ctx_search: "쿼리" → 관련 청크만 pull → context 진입
 | 도구 | 원리 | 전처리 | 최적 용도 |
 |------|------|--------|---------|
 | Karpathy CLAUDE.md | 텍스트 instruction | 없음 | 행동 방향 설정 |
-| /compress | LLM 파일 재작성 | 없음 | 자주 읽는 문서 |
-| RTK | shell 출력 필터 | shell 레벨 | git/빌드/테스트 출력 |
-| context-mode | 벡터 인덱스+검색 | MCP 서버 | 대형 문서 탐색 |
+| compress_all | 텍스트 압축 → _AI참고/ | 스크립트 | 자주 읽는 문서 |
+| CLI compact | compact 플래그 + PS 함수 | 설정 1회 | git/npm/docker 출력 |
+| vault-finder | vault 경로 저장 → 선택적 읽기 | 스크립트 | Obsidian 노트 접근 |
+| AWS hook | Bash 실행 전 환경 확인 | hook 설치 | EC2/AWS 프로젝트 |
